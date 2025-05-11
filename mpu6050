@@ -1,0 +1,65 @@
+#include <wiringPi.h>
+#include <wiringPiI2C.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <math.h>
+
+#define sample_rate     25
+#define config          26
+#define Gyro_config     27
+#define Acc_config      28
+#define Interrupt       56
+#define PWR_Managment   107 //108
+
+#define Acc_X           59
+#define Acc_Y           61
+#define Acc_Z           63
+
+int mpu;
+
+int16_t read_sensor(unsigned char sensor){
+        int16_t high, low, data;
+        high = wiringPiI2CReadReg8(mpu, Acc_X);
+        low = wiringPiI2CReadReg8(mpu, Acc_X + 1);
+
+        data = (high<<8) | low;
+
+        return data;
+}
+void Init_6050(void){
+
+wiringPiI2CWriteReg8(mpu, sample_rate, 4);
+
+wiringPiI2CWriteReg8(mpu, config , 2);
+
+wiringPiI2CWriteReg8(mpu, Gyro_config, 0x10);
+
+wiringPiI2CWriteReg8(mpu, Acc_config, 0x18);
+
+wiringPiI2CWriteReg8(mpu, Interrupt, 1);
+
+wiringPiI2CWriteReg8(mpu, PWR_Managment, 0x01);
+}
+int main(){
+mpu = wiringPiI2CSetup(0x68);
+
+Init_6050();
+
+while(1){
+float Ax = (float)read_sensor(Acc_X)/2048.0;
+
+float Ay = (float)read_sensor(Acc_Y)/2048.0;
+
+float Az = (float)read_sensor(Acc_Z)/2048.0;
+
+float pitch = atan2(Ax, sqrt(pow(Ay,2) + pow(Az, 2)))*180/3.14;
+float roll = atan2(Ax, sqrt(pow(Ax,2) + pow(Az, 2)))*180/3.14;
+
+printf("value = %.2f \n", pitch);
+
+delay(100);
+}
+
+return 0;
+}
+
